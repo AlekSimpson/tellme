@@ -29,8 +29,8 @@ import ollama as lama
 # """
 
 system_prompt = """
-Your task is to provide a bash shell command that matches the user's description of what the command should do.
-Your response should be ONLY a SINGLE bash shell command.
+Your task is to provide a zsh shell command that matches the user's description of what the command should do.
+Your response should be ONLY a SINGLE zsh shell command.
 The command should be accurate.
 The command should do what the user describes and nothing else.
 Do not explain the command.
@@ -45,7 +45,7 @@ Examples of Good Responses:
 ---------------------------------
 User: download only the audio from a youtube video given the youtube video's link
 Response: 
-```bash
+```zsh
 youtube-dl --extract-audio --format bestaudio https://www.youtube.com/watch?v=VIDEO_ID
 ```
 
@@ -56,13 +56,20 @@ User: list all files in a directory that have the .json file descriptor
 Response: ls -r *.json
 """
 
+model = {
+    "SMALL": "deepseek-r1:1.5b",
+    "LARGE": "deepseek-r1:8b"
+}
+
+MODELSIZE = "LARGE"
+
 # Generate text
 def tellme(prompt):
     remove_think_section = lambda text: re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
 
     print("Thinking...")
     full_prompt = lambda prompt_: f"{system_prompt}\ngive me the command to: {prompt}"
-    server_response = lama.generate(model='deepseek-r1:8b', prompt=full_prompt(prompt), options={
+    server_response = lama.generate(model=model[MODELSIZE], prompt=full_prompt(prompt), options={
         'temperature': 0.1
     })
     prompt_response = remove_think_section(server_response['response'])
