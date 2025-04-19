@@ -1,5 +1,8 @@
 import re
 import ollama as lama
+import time
+import sys
+import threading
 
 # system_prompt = """
 # You are a shell command assistant integrated into a CLI tool called "tellme". Your purpose is to translate natural language requests into precise shell commands.
@@ -67,11 +70,36 @@ MODELSIZE = "LARGE"
 def tellme(prompt):
     remove_think_section = lambda text: re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
 
-    print("Thinking...")
+    # Animation for loading
+    def loading_animation():
+        # Spinning dots animation using braille patterns
+        dots = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        i = 0
+        while loading_event.is_set():
+            sys.stdout.write('\r' + dots[i % len(dots)] + ' Thinking...')
+            sys.stdout.flush()
+            i += 1
+            time.sleep(0.1)
+        sys.stdout.write('\r                 \r')  # Clear the animation line
+        sys.stdout.flush()
+
+    # Start loading animation in a separate thread
+    loading_event = threading.Event()
+    loading_event.set()
+    loading_thread = threading.Thread(target=loading_animation)
+    loading_thread.start()
+
+    # Make API call
     full_prompt = lambda prompt_: f"{system_prompt}\ngive me the command to: {prompt}"
-    server_response = lama.generate(model=model[MODELSIZE], prompt=full_prompt(prompt), options={
-        'temperature': 0.1
-    })
-    prompt_response = remove_think_section(server_response['response'])
+    try:
+        server_response = lama.generate(model=model[MODELSIZE], prompt=full_prompt(prompt), options={
+            'temperature': 0.1
+        })
+        prompt_response = remove_think_section(server_response['response'])
+    finally:
+        # Stop the animation regardless of success or failure
+        loading_event.clear()
+        loading_thread.join()
+
     return prompt_response
 
